@@ -47,12 +47,16 @@ type Vertex struct {
 	X, Y int
 }
 
+func (v Vertex) String() string {
+	return fmt.Sprintf("%d,%d", v.X, v.Y)
+}
+
 type Triangle struct {
 	P [3]Vertex
 }
 
 func (t Triangle) String() string {
-	return fmt.Sprintf("%d,%d  %d,%d  %d,%d", t.P[0].X, t.P[0].Y, t.P[1].X, t.P[1].Y, t.P[2].X, t.P[2].Y )
+	return t.P[0].String() + " " + t.P[1].String() + " " + t.P[2].String()
 }
 
 type Affine struct {
@@ -62,6 +66,7 @@ type Affine struct {
 func (a Affine) String() string {
 	return a.src.String() + " -> " + a.dst.String()
 }
+
 
 func initVars() {
 	//@TODO: Load this from a config file and check orig and dest are different
@@ -108,7 +113,7 @@ func main() {
 			
 			for i:=0; i<generated_files; i++ {
 				img_cpy := img
-				transform := calculateTransform(&img_cpy)
+				transform := calculateTransform(&img_cpy, &src)
 				aff := Affine{ src, transform }
 				FIU.Trace.Printf("%d %s:\t%s", i, img_cpy.Files.Dest, aff.String())
 			}
@@ -156,8 +161,8 @@ func loadImageInfo(img *IMImage) error {
 // Place the first virtex anywhere on the new circle, this rotates the image (probably +/-80' is good)
 // Place the next points anywhere else on the circle that are not "too close", this skews and flips the image 
 
-func calculateTransform(img *IMImage) Triangle {
-	var t Triangle
+func calculateTransform(img *IMImage, src *Triangle) Triangle {
+	var dest Triangle
 	
 	// iC
 	center := Vertex{ img.Width / 2, img.Height / 2 }
@@ -167,52 +172,50 @@ func calculateTransform(img *IMImage) Triangle {
 	iscale := 100 - rng.Intn( max_scale )
 	scale := float64(iscale) / 100
 	new_radius := radius * scale 
-
 	FIU.Trace.Printf("Radius: %f -> %f", radius, new_radius)
-	
-	// Angle from center to top left of image 0,0 (in radians)
-	angle := math.Asin( float64(-center.X) / radius )
-	// Adjust by the random number of degrees supplied from rand(max_rotation)
+
+	// First point use max_rotation	
 	irotation := rng.Intn( (2 * max_rotation + 1) ) - max_rotation
-	rotation := float64( irotation )
-	// Convert to radians
-	rotation = (rotation * math.Pi) / 180
-	new_angle := angle + rotation
-	FIU.Trace.Printf("Angle to 0,0: %f -> %f", angle, new_angle)
-	
-	// Calculate the first point
-	t.P[0].X = int(math.Sin(new_angle) * new_radius)
-	t.P[0].Y = int(math.Cos(new_angle) * new_radius)
-	// ----------------------------------------------------------------------
+	dest.P[0] = pointTransform(center, src.P[0], new_radius, float64(irotation))
 
-	// Angle from center to top right of image width,0 (in radians)
-	angle := math.Asin( float64(center.X) / radius )
+	// 2nd and 3rd Points use max_skew
+	iskewx := rng.Intn( max_skew ) - (max_skew/2)
+	dest.P[1] = pointTransform(center, src.P[1], new_radius, float64(iskewx))
 
+	iskewy := rng.Intn( max_skew ) - (max_skew/2)
+	dest.P[2] = pointTransform(center, src.P[2], new_radius, float64(iskewy))
 
-	
-
-	iskew := rng.Intn( max_skew )
 
 	// The destination filename of a preprocessed image is made from the original image name with the distortion parameters added
 	dest_filename := filepath.Base(img.Files.Orig)
 	dest_filename = strings.TrimSuffix(dest_filename, filepath.Ext(dest_filename))
 	if irotation<0 {
-		irotation +=360
+		irotation += 360
 	}
-	img.Files.Dest = filepath.Join(img.Files.Dest, fmt.Sprintf("%s_%d_%d_%d.jpg", dest_filename, iscale, irotation, iskew)) 
+	if iskewx<0 {
+		iskewx += 360
+	}
+	if iskewy<0 {
+		iskewy += 360
+	}
+	img.Files.Dest = filepath.Join(img.Files.Dest, fmt.Sprintf("%s_%d_%d_%d_%d.jpg", dest_filename, iscale, irotation, iskewx, iskewy)) 
 
-	return t
+	return dest
 }
 
-func pointTransform(center, src Vertex, radius, random) Vertex {
+func pointTransform(center, src Vertex, new_radius, random float64) Vertex {
+	// Angle from center to src (in radians)
+	angle := math.Atan( float64(center.X - src.X) / float64(center.Y - src.Y) )
+	// Adjust by the random number of degrees supplied by random converted to radians
+	random = (random * math.Pi) / 180
+	new_angle := angle + random
+	FIU.Trace.Printf("Angle : %f -> %f", angle, new_angle)
+	
+	// Calculate the new point
+	p := Vertex {
+		int(math.Sin(new_angle) * new_radius),
+		int(math.Cos(new_angle) * new_radius),
+	}
 	return p
 }
 
-/*func distortImage(img IMImage) bool {
-
-}
-
-func imageSize(img *IMImage) (int, int) {
-
-}
-*/
