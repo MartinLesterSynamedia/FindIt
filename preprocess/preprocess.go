@@ -32,6 +32,12 @@ import (
 // It would be much faster but is notably more complex so for speed of implementation will just call 
 // out to the imagemagik command line
 
+const (
+	PId2 = math.Pi / 2
+	D2R  = math.Pi / 180
+	R2D  = 180 / math.Pi
+)
+
 var generated_files int
 var max_scale int
 var max_rotation int
@@ -67,6 +73,12 @@ func (a Affine) String() string {
 	return a.src.String() + " -> " + a.dst.String()
 }
 
+func (a Affine) ImageMagik() string {
+	p0 := a.src.P[0].String() + " " + a.dst.P[0].String()
+	p1 := a.src.P[1].String() + " " + a.dst.P[1].String()
+	p2 := a.src.P[2].String() + " " + a.dst.P[2].String()
+	return p0 + "  " + p1 + "  " + p2 
+}
 
 func initVars() {
 	//@TODO: Load this from a config file and check orig and dest are different
@@ -84,7 +96,7 @@ func initVars() {
 	generated_files = 10
 	max_scale = 80
 	max_rotation = 80
-	max_skew = 60
+	max_skew = 40
 }
 
 func main() {
@@ -116,6 +128,10 @@ func main() {
 				transform := calculateTransform(&img_cpy, &src)
 				aff := Affine{ src, transform }
 				FIU.Trace.Printf("%d %s:\t%s", i, img_cpy.Files.Dest, aff.String())
+
+				if performTransform(&img_cpy, &aff) != nil {
+					continue
+				}
 			}
 		}
 	}
@@ -131,7 +147,7 @@ func loadImageInfo(img *IMImage) error {
 	cmdOut, err := exec.Command(cmdName, cmdArgs...).Output()
 
 	if err != nil {
-		FIU.Warning.Println(cmdName + " " + strings.Join(cmdArgs, " ") + " " + err.Error())
+		FIU.Warning.Println(cmdName + " " + strings.Join(cmdArgs, " ") + ": " + err.Error())
 		return err
 	}
 
@@ -174,15 +190,16 @@ func calculateTransform(img *IMImage, src *Triangle) Triangle {
 	new_radius := radius * scale 
 	FIU.Trace.Printf("Radius: %f -> %f", radius, new_radius)
 
-	// First point use max_rotation	
+	// First point use max_rotation	- Note: Not sure why but rotation is counter clockwise
 	irotation := rng.Intn( (2 * max_rotation + 1) ) - max_rotation
 	dest.P[0] = pointTransform(center, src.P[0], new_radius, float64(irotation))
 
-	// 2nd and 3rd Points use max_skew
-	iskewx := rng.Intn( max_skew ) - (max_skew/2)
+	// 2nd point is rotated by the same initial rotation then uses max_skew to adjust
+	iskewx := irotation + rng.Intn( 2 * max_skew + 1 ) - max_skew
 	dest.P[1] = pointTransform(center, src.P[1], new_radius, float64(iskewx))
 
-	iskewy := rng.Intn( max_skew ) - (max_skew/2)
+	// 3rd point is related to the 2nd point then adjusted again
+	iskewy := iskewx + rng.Intn( 2 * max_skew + 1 ) - max_skew
 	dest.P[2] = pointTransform(center, src.P[2], new_radius, float64(iskewy))
 
 
@@ -205,17 +222,34 @@ func calculateTransform(img *IMImage, src *Triangle) Triangle {
 
 func pointTransform(center, src Vertex, new_radius, random float64) Vertex {
 	// Angle from center to src (in radians)
-	angle := math.Atan( float64(center.X - src.X) / float64(center.Y - src.Y) )
+	// Note: Y is deliberately reversed because images increase in Y opposite to math coordinates. Math is also rotated 90' left hencee the + PId2
+	angle := math.Atan2( float64(center.Y - src.Y), float64(src.X - center.X) ) + PId2
 	// Adjust by the random number of degrees supplied by random converted to radians
-	random = (random * math.Pi) / 180
-	new_angle := angle + random
-	FIU.Trace.Printf("Angle : %f -> %f", angle, new_angle)
+	new_angle := angle + (random * D2R)
+	FIU.Trace.Printf("Angle : %f (%d) -> %f (%d)", angle, int(angle * R2D), new_angle, int(new_angle * R2D))
 	
 	// Calculate the new point
 	p := Vertex {
-		int(math.Sin(new_angle) * new_radius),
-		int(math.Cos(new_angle) * new_radius),
+		int(math.Sin(new_angle) * new_radius) + center.X,
+		int(math.Cos(new_angle) * new_radius) + center.Y,
 	}
 	return p
 }
 
+func performTransform(img *IMImage, transform *Affine) error {
+	cmd := "convert"
+	args := []string{img.Files.Orig, "-alpha", "set", "-virtual-pixel", "transparent", "+distort", "Affine", transform.ImageMagik(), img.Files.Dest}
+
+	FIU.Trace.Println("Exec: " + cmd + " " + strings.Join(args, " ") )
+
+	c := exec.Command(cmd, args...)
+	out, err := c.CombinedOutput()
+
+	if err != nil {
+		FIU.Warning.Println(cmd + " " + strings.Join(args, " ") + ": ")
+		FIU.Warning.Printf("%s\n", out)
+		return err
+	}
+
+	return nil	
+}

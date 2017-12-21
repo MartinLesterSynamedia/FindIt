@@ -7,8 +7,6 @@ import (
 	"io"
     "os"
     "io/ioutil"
-    "bytes"
-    "image"
     _ "image/jpeg"
     _ "image/png"
     _ "image/gif"
@@ -65,28 +63,4 @@ func ListFilenames(path string) []os.FileInfo {
     return files
 }
 
-// Load an image irrespective of format. Images that fail to load produce warnings
-func LoadImage(filename string) image.Image {
-    Trace.Println("loadImage(" + filename + ")")
-
-    imgBuffer, err := ioutil.ReadFile(filename)
-
-    if err != nil {
-        Warning.Println("Unable to load '" + filename + "': " + err.Error())
-        return nil  
-    }
-
-    reader := bytes.NewReader(imgBuffer)
-
-    img, formatname, err := image.Decode(reader) // <--- here
-
-    if err != nil {
-        Warning.Println("Unable to read '" + filename + "' of type " + formatname + ": " + err.Error())
-        return nil 
-    }
-
-    Trace.Printf("Bounds : %d, %d", img.Bounds().Max.X, img.Bounds().Max.Y)
-
-    return img
-}
 

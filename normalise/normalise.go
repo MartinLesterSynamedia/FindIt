@@ -8,11 +8,13 @@ package main
 import (
 	FIU "FindIt/FIUtils"
     "github.com/nfnt/resize"
+    "io/ioutil"
     "image"
     "image/jpeg"
     "os"
     "path/filepath"
     "strings"
+    "bytes"
 )
 
 
@@ -73,12 +75,12 @@ func resizeImage(img *image.Image) image.Image {
 
 // Load an image irrespective of format. Images that fail to load produce warnings
 func LoadImage(filename string) image.Image {
-    Trace.Println("loadImage(" + filename + ")")
+    FIU.Trace.Println("loadImage(" + filename + ")")
 
     imgBuffer, err := ioutil.ReadFile(filename)
 
     if err != nil {
-        Warning.Println("Unable to load '" + filename + "': " + err.Error())
+        FIU.Warning.Println("Unable to load '" + filename + "': " + err.Error())
         return nil  
     }
 
@@ -87,11 +89,11 @@ func LoadImage(filename string) image.Image {
     img, formatname, err := image.Decode(reader) // <--- here
 
     if err != nil {
-        Warning.Println("Unable to read '" + filename + "' of type " + formatname + ": " + err.Error())
+        FIU.Warning.Println("Unable to read '" + filename + "' of type " + formatname + ": " + err.Error())
         return nil 
     }
 
-    Trace.Printf("Bounds : %d, %d", img.Bounds().Max.X, img.Bounds().Max.Y)
+    FIU.Trace.Printf("Bounds : %d, %d", img.Bounds().Max.X, img.Bounds().Max.Y)
 
     return img
 }
