@@ -32,11 +32,13 @@ func initVars() {
 	//@TODO: Load this from a config file and check orig and dest are different
 	FIU.Paths = make(map[string]FIU.OrigDest)
 	FIU.Paths["keys"] = FIU.OrigDest {
-		FIU.FindIt_path + "/images/keys", FIU.FindIt_path + "/images_processed/normalised/keys", 
+		filepath.Join(FIU.FindIt_path, "/images/keys"),
+		filepath.Join(FIU.FindIt_path, "/images_processed/normalised/keys"), 
 	}
 
 	FIU.Paths["backgrounds"] = FIU.OrigDest {
-		FIU.FindIt_path + "/images/backgrounds", FIU.FindIt_path + "/images_processed/normalised/backgrounds",
+		filepath.Join(FIU.FindIt_path, "/images/backgrounds"),
+		filepath.Join(FIU.FindIt_path, "/images_processed/normalised/backgrounds"),
 	}
 
 	max_width = 400

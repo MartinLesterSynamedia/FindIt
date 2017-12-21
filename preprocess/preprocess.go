@@ -85,12 +85,12 @@ func initVars() {
 	FIU.Paths = make(map[string]FIU.OrigDest)
 	FIU.Paths["keys"] = FIU.OrigDest {
 		filepath.Join(FIU.FindIt_path, "images_processed/normalised/keys"),
-		filepath.Join(FIU.FindIt_path, "/images_processed/keys"), 
+		filepath.Join(FIU.FindIt_path, "/images_processed/preprocessed/keys"), 
 	}
 
 	FIU.Paths["backgrounds"] = FIU.OrigDest {
 		filepath.Join(FIU.FindIt_path, "/images_processed/normalised/backgrounds"),
-		filepath.Join(FIU.FindIt_path, "/images_processed/backgrounds"), 
+		filepath.Join(FIU.FindIt_path, "/images_processed/preprocessed/backgrounds"), 
 	}
 
 	generated_files = 10
