@@ -8,13 +8,10 @@ package main
 import (
 	FIU "FindIt/FIUtils"
     "github.com/nfnt/resize"
-    "io/ioutil"
     "image"
-    "image/jpeg"
     "os"
     "path/filepath"
     "strings"
-    "bytes"
 )
 
 
@@ -55,11 +52,11 @@ func main() {
  	for _, folder := range []string{"keys", "backgrounds"} {
 		files := FIU.ListFilenames(FIU.Paths[folder].Orig)
 		for _, file := range files {
-			img := LoadImage( filepath.Join(FIU.Paths[folder].Orig, file.Name()) )
+			img := FIU.LoadImage( filepath.Join(FIU.Paths[folder].Orig, file.Name()) )
 			if img != nil {
 				img = resizeImage(&img)
 				dest_filename := strings.TrimSuffix(file.Name(), filepath.Ext(file.Name()))
-				saveImageAsJpg(&img, filepath.Join(FIU.Paths[folder].Dest,  dest_filename + ".jpg"))
+				FIU.SaveImage(&img, filepath.Join(FIU.Paths[folder].Dest,  dest_filename + ".jpg"))
 			    //@TODO: Count if there are enough key and backgrounds available 3 and 1
 			}
 		}
@@ -75,44 +72,4 @@ func resizeImage(img *image.Image) image.Image {
 	return newimg
 }
 
-// Load an image irrespective of format. Images that fail to load produce warnings
-func LoadImage(filename string) image.Image {
-    FIU.Trace.Println("loadImage(" + filename + ")")
 
-    imgBuffer, err := ioutil.ReadFile(filename)
-
-    if err != nil {
-        FIU.Warning.Println("Unable to load '" + filename + "': " + err.Error())
-        return nil  
-    }
-
-    reader := bytes.NewReader(imgBuffer)
-
-    img, formatname, err := image.Decode(reader) // <--- here
-
-    if err != nil {
-        FIU.Warning.Println("Unable to read '" + filename + "' of type " + formatname + ": " + err.Error())
-        return nil 
-    }
-
-    FIU.Trace.Printf("Bounds : %d, %d", img.Bounds().Max.X, img.Bounds().Max.Y)
-
-    return img
-}
-
-// Save the image as a jpeg and save a bit more space
-func saveImageAsJpg(img *image.Image, filename string) {
-	FIU.Trace.Println("saveImageAsJpg(" + filename + ")")
-
-    out, err := os.Create(filename)
-    if err != nil {
-    	FIU.Warning.Println("Unable to create file '" + filename + "': " + err.Error())
-    }
-    var opt jpeg.Options
-    opt.Quality = 80
-
-	err = jpeg.Encode(out, *img, &opt)
-	if err != nil {
-    	FIU.Warning.Println("Unable to write normalised jpeg '" + filename + "': " + err.Error())
-    }
-}

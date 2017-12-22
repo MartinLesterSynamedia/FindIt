@@ -8,24 +8,23 @@ package main
 import (
 	FIU "FindIt/FIUtils"
     "os"
-    // "os/exec"
     "path/filepath"
-    // "image"
-    // "image/jpeg"
-    // "math"
+    "image"
+    "image/draw"
     "math/rand"
     "time"
     "sort"
     "strings"
-    "fmt"
-    // "strconv"
+    //"fmt"
 )
 
 var key_path string
 var paths FIU.OrigDest
 var rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 
+
 var num_keys int
+var num_blits int
 
 func initVars() {
     //@TODO: Load this from a config file and check orig and dest are different
@@ -37,6 +36,7 @@ func initVars() {
     }
 
     num_keys = 3
+    num_blits = 20
 }
 
 func main() {
@@ -56,7 +56,42 @@ func main() {
         processed_keys = append(processed_keys, processed_files...) 
     }
 
-    fmt.Println(processed_keys)
+    output := image.NewRGBA( image.Rect(0,0,FIU.Out_width, FIU.Out_height) )
+
+    rand_order := rng.Perm(len(processed_keys))
+    for _, i := range rand_order {
+        file := processed_keys[i]
+        img := FIU.LoadImage(file)
+
+        // A rectangle 1/4 the size of the image
+        bounds := image.Point{img.Bounds().Max.X, img.Bounds().Max.Y}
+        rect_bounds := image.Point{ bounds.X / 4, bounds.Y / 4 }
+      
+        offset := image.Point{ bounds.X/10, bounds.Y/10 }
+        sp := image.Point{ rng.Intn(bounds.X - rect_bounds.X - offset.X) + offset.X, rng.Intn(bounds.Y - rect_bounds.Y - offset.Y) + offset.Y }
+        
+        for i:=0; i<num_blits; i++ {
+            // Take this random chunk of spurce imae and paste it into random points of the output image
+            op := image.Point{ rng.Intn(FIU.Out_width) - rect_bounds.X/2, rng.Intn(FIU.Out_height) - rect_bounds.Y/2 }
+            
+            r := image.Rectangle{op, image.Point{op.X + rect_bounds.X, op.Y + rect_bounds.Y}}
+            draw.Draw(output, r, img, sp, draw.Src)    
+        } 
+    }
+
+    // Construct the output filename
+    outfilename := ""
+    for _, file := range files {
+         filename := filepath.Base(file)
+         filename = strings.TrimSuffix(filename, filepath.Ext(filename))
+         outfilename += filename + "_" 
+    }
+    outfilename = strings.TrimSuffix(outfilename, "_")
+    outfilename += ".jpg"
+
+    outfilename = filepath.Join(paths.Dest, outfilename)
+    out_image := output.SubImage(image.Rectangle(output.Bounds()))
+    FIU.SaveImage( &out_image, outfilename )
 }
 
 func getKeyFiles(filelist []os.FileInfo) []string {

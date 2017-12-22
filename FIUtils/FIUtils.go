@@ -7,12 +7,16 @@ import (
 	"io"
     "os"
     "io/ioutil"
-    _ "image/jpeg"
+    "image"
+    "bytes"
+    "image/jpeg"
     _ "image/png"
     _ "image/gif"
 )
 
 var FindIt_path string = os.Getenv("GOPATH") + "/src/FindIt"
+const Out_width = 800
+const Out_height = 600 
 
 type OrigDest struct {
     Orig, Dest string
@@ -64,3 +68,44 @@ func ListFilenames(path string) []os.FileInfo {
 }
 
 
+// Load an image irrespective of format. Images that fail to load produce warnings
+func LoadImage(filename string) image.Image {
+    Trace.Println("loadImage(" + filename + ")")
+
+    imgBuffer, err := ioutil.ReadFile(filename)
+
+    if err != nil {
+        Warning.Println("Unable to load '" + filename + "': " + err.Error())
+        return nil  
+    }
+
+    reader := bytes.NewReader(imgBuffer)
+
+    img, formatname, err := image.Decode(reader) // <--- here
+
+    if err != nil {
+        Warning.Println("Unable to read '" + filename + "' of type " + formatname + ": " + err.Error())
+        return nil 
+    }
+
+    Trace.Printf("Bounds : %d, %d", img.Bounds().Max.X, img.Bounds().Max.Y)
+
+    return img
+}
+
+// Save the image as a jpeg and save a bit more space
+func SaveImage(img *image.Image, filename string) {
+    Trace.Println("SaveImage(" + filename + ")")
+
+    out, err := os.Create(filename)
+    if err != nil {
+        Warning.Println("Unable to create file '" + filename + "': " + err.Error())
+    }
+    var opt jpeg.Options
+    opt.Quality = 100
+
+    err = jpeg.Encode(out, *img, &opt)
+    if err != nil {
+        Warning.Println("Unable to write '" + filename + "': " + err.Error())
+    }
+}
