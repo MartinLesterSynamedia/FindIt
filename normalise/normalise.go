@@ -19,7 +19,7 @@ import (
 // For each image 
 //     Load the image - If it fails to load then report a warning
 //     Check the dimensions - scale to fit 400x400 maintaining aspect 
-//	   Save the file as jpeg with moderate compression to 
+//	   Save the file as png 
 
 
 var max_width uint
@@ -56,7 +56,7 @@ func main() {
 			if img != nil {
 				img = resizeImage(&img)
 				dest_filename := strings.TrimSuffix(file.Name(), filepath.Ext(file.Name()))
-				FIU.SaveImage(&img, filepath.Join(FIU.Paths[folder].Dest,  dest_filename + ".jpg"))
+				FIU.SaveImage(&img, filepath.Join(FIU.Paths[folder].Dest,  dest_filename + ".png"))
 			    //@TODO: Count if there are enough key and backgrounds available 3 and 1
 			}
 		}

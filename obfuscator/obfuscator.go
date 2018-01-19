@@ -56,6 +56,7 @@ func main() {
         processed_keys = append(processed_keys, processed_files...) 
     }
 
+    // Generate the image
     output := image.NewRGBA( image.Rect(0,0,FIU.Out_width, FIU.Out_height) )
 
     rand_order := rng.Perm(len(processed_keys))
@@ -64,7 +65,7 @@ func main() {
         img := FIU.LoadImage(file)
 
         // A rectangle 1/4 the size of the image
-        bounds := image.Point{img.Bounds().Max.X, img.Bounds().Max.Y}
+        bounds := img.Bounds().Max
         rect_bounds := image.Point{ bounds.X / 4, bounds.Y / 4 }
       
         offset := image.Point{ bounds.X/10, bounds.Y/10 }
@@ -87,9 +88,10 @@ func main() {
          outfilename += filename + "_" 
     }
     outfilename = strings.TrimSuffix(outfilename, "_")
-    outfilename += ".jpg"
-
+    outfilename += ".png"
     outfilename = filepath.Join(paths.Dest, outfilename)
+
+    // Save the image to the filename
     out_image := output.SubImage(image.Rectangle(output.Bounds()))
     FIU.SaveImage( &out_image, outfilename )
 }

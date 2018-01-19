@@ -215,7 +215,7 @@ func calculateTransform(img *IMImage, src *Triangle) Triangle {
 	if iskewy<0 {
 		iskewy += 360
 	}
-	img.Files.Dest = filepath.Join(img.Files.Dest, fmt.Sprintf("%s_%d_%d_%d_%d.jpg", dest_filename, iscale, irotation, iskewx, iskewy)) 
+	img.Files.Dest = filepath.Join(img.Files.Dest, fmt.Sprintf("%s_%d_%d_%d_%d.png", dest_filename, iscale, irotation, iskewx, iskewy)) 
 
 	return dest
 }

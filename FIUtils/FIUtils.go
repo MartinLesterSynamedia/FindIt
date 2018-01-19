@@ -9,8 +9,8 @@ import (
     "io/ioutil"
     "image"
     "bytes"
-    "image/jpeg"
-    _ "image/png"
+    "image/png"
+    _ "image/jpeg"
     _ "image/gif"
 )
 
@@ -69,6 +69,7 @@ func ListFilenames(path string) []os.FileInfo {
 
 
 // Load an image irrespective of format. Images that fail to load produce warnings
+// TODO: Cope with erroious files/folders 
 func LoadImage(filename string) image.Image {
     Trace.Println("loadImage(" + filename + ")")
 
@@ -88,12 +89,12 @@ func LoadImage(filename string) image.Image {
         return nil 
     }
 
-    Trace.Printf("Bounds : %d, %d", img.Bounds().Max.X, img.Bounds().Max.Y)
+    // Trace.Printf("Bounds : %d, %d", img.Bounds().Max.X, img.Bounds().Max.Y)
 
     return img
 }
 
-// Save the image as a jpeg and save a bit more space
+// Save the image as a png
 func SaveImage(img *image.Image, filename string) {
     Trace.Println("SaveImage(" + filename + ")")
 
@@ -101,10 +102,8 @@ func SaveImage(img *image.Image, filename string) {
     if err != nil {
         Warning.Println("Unable to create file '" + filename + "': " + err.Error())
     }
-    var opt jpeg.Options
-    opt.Quality = 100
 
-    err = jpeg.Encode(out, *img, &opt)
+    err = png.Encode(out, *img)
     if err != nil {
         Warning.Println("Unable to write '" + filename + "': " + err.Error())
     }
