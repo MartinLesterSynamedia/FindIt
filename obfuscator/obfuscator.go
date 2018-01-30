@@ -50,7 +50,7 @@ func main() {
     processed_keys = make([]string, 0)
     for _, file := range files {
         file_glob := filepath.Base(file)
-        file_glob = strings.TrimSuffix(file_glob, filepath.Ext(file_glob)) + "*"
+        file_glob = strings.TrimSuffix(file_glob, filepath.Ext(file_glob)) + "_*"
         file_glob = filepath.Join(paths.Orig, file_glob)
         processed_files, _ := filepath.Glob(file_glob) // Ignore error as the only error is bad pattern
         processed_keys = append(processed_keys, processed_files...) 
@@ -59,6 +59,7 @@ func main() {
     // Generate the image
     output := image.NewRGBA( image.Rect(0,0,FIU.Out_width, FIU.Out_height) )
 
+    // TODO: Need to limit the number of preprocessed key files
     rand_order := rng.Perm(len(processed_keys))
     for _, i := range rand_order {
         file := processed_keys[i]

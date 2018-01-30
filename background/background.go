@@ -33,9 +33,9 @@ func initVars() {
        filepath.Join(FIU.FindIt_path, "/images_processed/backgrounds"), 
     }
 
-    num_files = 1
-    num_alpha = 1
-    num_blits = 100
+    num_files = 10
+    num_alpha = 5
+    num_blits = 10
 }
 
 func main() {
@@ -43,7 +43,7 @@ func main() {
     FIU.InitTrace(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
     initVars()
 
-    // Load all the alphas we are going to user
+    // Load all the alphas we are going to use
 	alphafilenames := getAlphaFiles( FIU.ListFilenames(alpha_path) )
 	alphas := []image.Image{}
 	alphas = make([]image.Image,0)

@@ -22,7 +22,7 @@ func initVars() {
 	alpha_path = filepath.Join(FIU.FindIt_path, "/images_processed/preprocessed/alpha")
 
     width = 400
-    height = 300
+    height = 400
 }
 
 func main() {
@@ -30,8 +30,7 @@ func main() {
     FIU.InitTrace(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
     initVars()
 
-	//for _, ab := range []alphaBlend{ linear{"up"}, linear{"down"}, linear{"left"}, linear{"right"}} {
-	for _, ab := range []alphaBlend{ circular{image.Pt(200,200)}, circular{image.Pt(0,0)}, circular{image.Pt(100,height)}, circular{image.Pt(width/2,height/2)} } {
+	for _, ab := range []alphaBlend{ circular{image.Pt(200,200)}, circular{image.Pt(0,0)}, circular{image.Pt(100,height)}, circular{image.Pt(width/2,height/2)}, linear{"up"}, linear{"down"}, linear{"left"}, linear{"right"} } {
 		output := ab.getAlpha()
 		outfilename := filepath.Join(alpha_path, ab.String() + ".png")
 
