@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>FindIt CAPTCHA</title>
+	<link rel="stylesheet" type="text/css" href="FindIt.css">
+</head>
+<body>
+	<h1>{{.Title}}</h1>
+
+	<div id="main">
+		<div id="keys">
+			{{range .Keys}}
+			<div class="key" id="{{.KeyName}}">
+				<img title="{{.KeyName}}" src="data:image/png;base64,{{.KeyImage}}" />	
+			</div>
+			{{end}}
+		</div>
+		<div id="image">
+			<img src="data:image/png;base64,{{.MainImage}}" />
+		</div>		
+	</div>
+</body>
+</html>

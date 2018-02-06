@@ -18,8 +18,8 @@ import (
     "path/filepath"
     "strings"
     "strconv"
+    "encoding/json"
 )
-
 
 var key_path, backgrounds_path string
 var paths FIU.OrigDest
@@ -40,6 +40,11 @@ func initVars() {
 
     num_keys = 3
     bg_transparency = 150
+}
+
+type metadata struct {
+	Key_rects []image.Rectangle
+	Key_files []string
 }
 
 func main() {
@@ -70,13 +75,12 @@ func main() {
 	// Split the chosen obfuscator filename to select the 3 key files
 	file_glob := filepath.Base(obfuscator_file)
     file_glob = strings.TrimSuffix(file_glob, filepath.Ext(file_glob))    
-    key_files := strings.Split(file_glob, "_")
-	FIU.Trace.Println("Keys: " + strings.Join(key_files, " "))
+    md := metadata{Key_files: strings.Split(file_glob, "_")}
+	FIU.Trace.Println("Keys: " + strings.Join(md.Key_files, " "))
 
-	var key_rects []image.Rectangle
-	key_rects = make([]image.Rectangle, 0, num_keys)
+	md.Key_rects = make([]image.Rectangle, 0, num_keys)
     // Load 1 normailised version of each key file
-    for i, v := range key_files {
+    for i, v := range md.Key_files {
     	keys, _ := filepath.Glob( filepath.Join(key_path, v + "_*") ) 
     	key := keys[rng.Intn(len(keys))]
     	// Load the preprocessed key file
@@ -90,26 +94,54 @@ func main() {
     	}
 
     	// Keep randomly placing the rect till is doesn't overlap any others
-    	// TODO: This is okay with small numbers of keys but may be impossible to solve with larger numbers and so hang
 	    RetryRect:
     	// Random output rectangle
 		op := image.Point{ rng.Intn(FIU.Out_width - bounds.X), rng.Intn(FIU.Out_height - bounds.Y) }
 		r := image.Rectangle{op, op.Add(bounds)}
-		for _, rect := range key_rects {
+		for _, rect := range md.Key_rects {
 			if r.Overlaps(rect) {
 				FIU.Trace.Println("Rect overlaped RetryRect")
+				// TODO: This is okay with small numbers of keys but will be impossible to solve with larger numbers and so hang
 				goto RetryRect
 			}
 		}		
-		key_rects = append(key_rects, r)
+		md.Key_rects = append(md.Key_rects, r)
 		FIU.Trace.Println("key " + strconv.Itoa(i+1) + ": " + r.String())
     	
     	// Use an alphablend to transparent blit the key into the image
+    	// TODO: Load and use an alphaBland rather than just a uniform alpha
 		draw.DrawMask(output, r, key_img, image.ZP, &image.Uniform{color.RGBA{0, 0, 0, 170}}, image.ZP, draw.Over)
     }
 
     // Save the image to the filename
-    outfilename := filepath.Join(paths.Dest, filepath.Base(obfuscator_file))
+    outfilename := strconv.FormatInt(time.Now().UnixNano(), 16)
+    outfilename = filepath.Join(paths.Dest, outfilename)
     out_image := output.SubImage(image.Rectangle(output.Bounds()))
-    FIU.SaveImage( &out_image, outfilename )
+    FIU.SaveImage( &out_image, outfilename + ".png" )
+
+	f, err := os.Create(outfilename + ".json")
+	if err != nil {
+		FIU.Error.Println("Unable to create meta data file '" + outfilename + ".json':" + err.Error())
+		os.Exit(1)
+	}
+	defer f.Close()
+
+    // Save the key location meta data.
+    if err := writeJson(f, md); err != nil {
+    	FIU.Error.Println("Unable to write meta data to " + outfilename + ": " + err.Error())
+    	os.Exit(1)
+    }
+    FIU.Trace.Println("Wrote " + outfilename + ".json")
+}
+
+func writeJson( f *os.File, data interface{} ) error {
+    b, err := json.Marshal( data )
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(b)
+	if err != nil {
+		return err
+	}
+	return nil
 }
