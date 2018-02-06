@@ -17,6 +17,8 @@ import (
     "github.com/davecgh/go-spew/spew"
 )
 
+var revealed = false
+
 func parseCommandLine() (filename *string, path *string, keypath *string) {
 	// Get the filename of the image and metadata json file to use
 	filename = flag.String("filename", "", "The base name of the FindIt png and json metadata files")
@@ -56,7 +58,7 @@ func main() {
 	img := encodeImage(FIU.LoadImage(filepath.Join(*path, *filename + ".png")))
 
 	pd := PageData {
-		Title: "FindIt Capture",
+		Title: "FindIt CAPTCHA",
 		MainImage: img,
 	}
 
@@ -74,19 +76,28 @@ func main() {
 	// Start martini
     m := martini.Classic()
     // Define the route to the css file
-    m.Use(martini.Static("./css"))
+    m.Use(martini.Static("./static"))
 
     m.Get("/", func() string {
+    	if revealed {
+    		return "Sorry you've already tried this one. Try refreshing the page"
+    	}
+
     	t := template.Must(template.New("FindIt.html").ParseFiles("FindIt.html"))
     	buf := new(bytes.Buffer)
     	err := t.Execute(buf, &pd)
     	if err != nil {
+    		// TODO: Remove the error before deployement
         	return "It's all gone wrong: " + err.Error()
     	}
         return buf.String()
     })
 
     m.Post("/verify/", func(req *http.Request) string {
+    	if revealed {
+    		return "Sorry you've already tried this one. Try refreshing the page"
+    	}
+    	revealed = true
     	spew.Dump(req.URL.Query())
     	out := "Verify keys:"
     	for _, v := range req.URL.Query() {
@@ -96,7 +107,13 @@ func main() {
      })
 
     m.Get("/reveal/", func(params martini.Params) string {
-    	return "Reveal the key locations\n"
+		revealed = true
+		b, err := json.Marshal( meta )
+		if err != nil {
+			// TODO: Remove the error before deployement
+			return "JSON encode error: " + err.Error()
+		}
+    	return string(b[:]);
     })
 
     m.Run()

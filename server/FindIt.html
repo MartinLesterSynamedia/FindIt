@@ -2,22 +2,33 @@
 <html>
 <head>
 	<title>FindIt CAPTCHA</title>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 	<link rel="stylesheet" type="text/css" href="FindIt.css">
+	<script src="FindIt.js"></script>
 </head>
-<body>
-	<h1>{{.Title}}</h1>
+<body onload="fixCanvas()">
+	<div id="header">
+		<h1>{{.Title}}</h1>
+		<img id="help" title="Click to reveal the locations of the hidden images" src="help.png" onclick="revealPoints()" />
+	</div>
 
 	<div id="main">
+		<p class="helpText">Find these images...</p>
 		<div id="keys">
 			{{range .Keys}}
 			<div class="key" id="{{.KeyName}}">
-				<img title="{{.KeyName}}" src="data:image/png;base64,{{.KeyImage}}" />	
+				<img title="{{.KeyName}}, go FindIt in the big picture" src="data:image/png;base64,{{.KeyImage}}" />	
 			</div>
 			{{end}}
 		</div>
-		<div id="image">
-			<img src="data:image/png;base64,{{.MainImage}}" />
-		</div>		
+		<div id="imageArea">
+			<img id="image" src="data:image/png;base64,{{.MainImage}}"/>
+			<canvas id="draw" onclick="recordClick(event)" onmousemove="debugMousePos(event)" ></canvas>
+			<p class="helpText">... in this image</p>
+		</div>
 	</div>
+
+	<p id="move"></p>
+	<p id="click"></p>
 </body>
 </html>
